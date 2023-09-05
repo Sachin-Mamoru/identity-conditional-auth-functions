@@ -125,8 +125,9 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
                 }
 
                 String tenantDomain = authenticationContext.getTenantDomain();
-                AccessTokenRequestHelper accessTokenRequestHelper = new AccessTokenRequestHelper(
-                        connectionMetaData, asyncReturn, authenticationContext, payloadData);
+                AccessTokenRequestHelper accessTokenRequestHelper =
+                        new AccessTokenRequestHelper(connectionMetaData, asyncReturn, authenticationContext,
+                                payloadData);
                 String accessToken = choreoAccessTokenCache.getValueFromCache(accessTokenRequestHelper.getConsumerKey(),
                         tenantDomain);
                 if (StringUtils.isNotEmpty(accessToken) && !isTokenExpired(accessToken)) {
@@ -176,8 +177,8 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
 
     public String getResolvedSecret(String name) throws SecretManagementException {
 
-        ResolvedSecret responseDTO = ChoreoFunctionServiceHolder.getInstance().getSecretConfigManager()
-                .getResolvedSecret(SECRET_TYPE, name);
+        ResolvedSecret responseDTO =
+                ChoreoFunctionServiceHolder.getInstance().getSecretConfigManager().getResolvedSecret(SECRET_TYPE, name);
         return responseDTO.getResolvedSecretValue();
     }
 
@@ -245,14 +246,14 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
     /**
      * Performs the access token request using client credentials grant type.
      *
-     * @param tenantDomain       The tenant domain which the request belongs to.
-     * @param accessTokenRequestHelper     The future callback that needs to be called after requesting the token.
+     * @param tenantDomain             The tenant domain which the request belongs to.
+     * @param accessTokenRequestHelper The future callback that needs to be called after requesting the token.
      * @throws SecretManagementException {@link SecretManagementException}
      * @throws IOException               {@link IOException}
      * @throws FrameworkException        {@link FrameworkException}
      */
     private void requestAccessToken(String tenantDomain, AccessTokenRequestHelper accessTokenRequestHelper)
-                                    throws IOException, FrameworkException {
+            throws IOException, FrameworkException {
 
         String tokenEndpoint;
         if (StringUtils.isNotEmpty(accessTokenRequestHelper.getAsgardeoTokenEndpoint())) {
@@ -264,16 +265,16 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
         request.setHeader(ACCEPT, TYPE_APPLICATION_JSON);
         request.setHeader(CONTENT_TYPE, TYPE_FORM_DATA);
 
-        request.setHeader(AUTHORIZATION, BASIC + Base64.getEncoder()
-                .encodeToString((accessTokenRequestHelper.consumerKey + ":" + accessTokenRequestHelper.consumerSecret)
-                .getBytes(StandardCharsets.UTF_8)));
+        request.setHeader(AUTHORIZATION, BASIC + Base64.getEncoder().encodeToString(
+                (accessTokenRequestHelper.consumerKey + ":" + accessTokenRequestHelper.consumerSecret).getBytes(
+                        StandardCharsets.UTF_8)));
 
         List<BasicNameValuePair> bodyParams = new ArrayList<>();
         bodyParams.add(new BasicNameValuePair(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS));
         request.setEntity(new UrlEncodedFormEntity(bodyParams));
 
-        CloseableHttpAsyncClient client = ChoreoFunctionServiceHolder.getInstance().getClientManager()
-                .getClient(tenantDomain);
+        CloseableHttpAsyncClient client =
+                ChoreoFunctionServiceHolder.getInstance().getClientManager().getClient(tenantDomain);
         LOG.info("CloseableHttpAsyncClient executing access token request for session data key: " +
                 accessTokenRequestHelper.authenticationContext.getContextIdentifier());
         client.execute(request, accessTokenRequestHelper);
@@ -292,10 +293,9 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
         private String consumerSecret;
         private String asgardeoTokenEndpoint;
 
-        public AccessTokenRequestHelper(Map<String, String> connectionMetaData,
-                                        AsyncReturn asyncReturn,
-                                        AuthenticationContext authenticationContext,
-                                        Map<String, Object> payloadData) throws SecretManagementException {
+        public AccessTokenRequestHelper(Map<String, String> connectionMetaData, AsyncReturn asyncReturn,
+                                        AuthenticationContext authenticationContext, Map<String, Object> payloadData)
+                throws SecretManagementException {
 
             this.connectionMetaData = connectionMetaData;
             this.asyncReturn = asyncReturn;
@@ -320,9 +320,10 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
                 LOG.debug("Access token response received.");
                 int responseCode = httpResponse.getStatusLine().getStatusCode();
                 if (responseCode == HTTP_STATUS_OK) {
-                    Type responseBodyType = new TypeToken<Map<String, String>>() { }.getType();
-                    Map<String, String> responseBody = this.gson
-                            .fromJson(EntityUtils.toString(httpResponse.getEntity()), responseBodyType);
+                    Type responseBodyType = new TypeToken<Map<String, String>>() {
+                    }.getType();
+                    Map<String, String> responseBody =
+                            this.gson.fromJson(EntityUtils.toString(httpResponse.getEntity()), responseBodyType);
                     String accessToken = responseBody.get(ACCESS_TOKEN_KEY);
                     if (accessToken != null) {
                         choreoAccessTokenCache.addToCache(this.consumerKey, accessToken,
@@ -499,7 +500,8 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
                 int statusCode = response.getStatusLine().getStatusCode();
                 Map<String, Object> successResponseBody;
                 if (statusCode >= 200 && statusCode < 300) { // Accepting 2xx as success.
-                    responseBodyType = new TypeToken<Map<String, Object>>() { }.getType();
+                    responseBodyType = new TypeToken<Map<String, Object>>() {
+                    }.getType();
                     String responseBodyString = EntityUtils.toString(response.getEntity());
                     if (StringUtils.isEmpty(responseBodyString)) {
                         // To handle the case where the response body is empty.
@@ -507,13 +509,14 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
                     } else {
                         successResponseBody = this.gson.fromJson(responseBodyString, responseBodyType);
                     }
-                    LOG.info("Received 2xx response from Choreo. Status Code: " + statusCode +
-                            " Session data key: " + authenticationContext.getContextIdentifier());
+                    LOG.info("Received 2xx response from Choreo. Status Code: " + statusCode + " Session data key: " +
+                            authenticationContext.getContextIdentifier());
                     this.asyncReturn.accept(authenticationContext, successResponseBody, Constants.OUTCOME_SUCCESS);
                 } else if (statusCode == HTTP_STATUS_UNAUTHORIZED) {
-                    responseBodyType = new TypeToken<Map<String, String>>() { }.getType();
-                    Map<String, String> responseBody = this.gson
-                            .fromJson(EntityUtils.toString(response.getEntity()), responseBodyType);
+                    responseBodyType = new TypeToken<Map<String, String>>() {
+                    }.getType();
+                    Map<String, String> responseBody =
+                            this.gson.fromJson(EntityUtils.toString(response.getEntity()), responseBodyType);
 
                     if (ERROR_CODE_ACCESS_TOKEN_INACTIVE.equals(responseBody.get(CODE))) {
                         LOG.info("Access token inactive for session data key: " +
@@ -545,7 +548,7 @@ public class CallChoreoFunctionImpl implements CallChoreoFunction {
          * token or if it's a time-out. The program will retry the token request flow until it exceeds the specified
          * max request attempt count.
          *
-         * @throws IOException {@link IOException}
+         * @throws IOException        {@link IOException}
          * @throws FrameworkException {@link FrameworkException}
          */
         private void handleRetryTokenRequest(AtomicInteger tokenRequestAttemptCount, String outcome)
